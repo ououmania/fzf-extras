@@ -263,7 +263,7 @@ fo() {
 }
 
 # v - open files in ~/.viminfo
-v() {
+function v() {
   local files
   files="$(
     grep '^>' "$HOME/.viminfo" \
