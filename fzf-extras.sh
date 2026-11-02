@@ -611,9 +611,13 @@ ftags() {
       | fzf --nth=2 --tiebreak=begin
   )" || return
 
+  # `"` starts a comment in Ex commands, so the tag name must not be quoted
+  local tagname
+  tagname="$(cut -f2 <<< "$line" | sed -e 's/[\\|"%# ]/\\&/g')"
+
   "${EDITOR:-vim}" "$(cut -f3 <<< "$line")" \
     -c 'set nocst' \
-    -c "silent tag \"$(cut -f2 <<< "$line")\""
+    -c "silent tag $tagname"
 }
 
 
