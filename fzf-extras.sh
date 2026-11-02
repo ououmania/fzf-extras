@@ -24,7 +24,11 @@ zdd() {
           --bind=ctrl-v:toggle-preview \
           --bind=ctrl-x:toggle-sort \
           --header='(view:ctrl-v) (sort:ctrl-x)' \
-  )" || return
+  )"
+  # Do not rely on the pipeline status: with `pipefail` on, find dying of
+  # SIGPIPE (141) or failing on its own (1) makes the whole pipeline non-zero,
+  # so a valid selection would never reach `cd`. Check the selection instead.
+  [[ -n $dir ]] || return
   cd "$dir" || return
 }
 
@@ -39,7 +43,9 @@ zda() {
           --bind=ctrl-v:toggle-preview \
           --bind=ctrl-x:toggle-sort \
           --header='(view:ctrl-v) (sort:ctrl-x)' \
-  )" || return
+  )"
+  # Same as zdd: ignore the producer's status, check the selection.
+  [[ -n $dir ]] || return
   cd "$dir" || return
 }
 
@@ -65,7 +71,9 @@ zdr() {
           --bind=ctrl-v:toggle-preview \
           --bind=ctrl-x:toggle-sort \
           --header='(view:ctrl-v) (sort:ctrl-x)' \
-  )" || return
+  )"
+  # Same as zdd: ignore the producer's status, check the selection.
+  [[ -n $parent_dir ]] || return
 
   cd "$parent_dir" || return
 }
@@ -125,7 +133,9 @@ zz() {
           --bind=ctrl-v:toggle-preview \
           --bind=ctrl-x:toggle-sort \
           --header='(view:ctrl-v) (sort:ctrl-x)' \
-  )" || return
+  )"
+  # Same as zdd: ignore fasd's status, check the selection.
+  [[ -n $dir ]] || return
 
   cd "$dir" || return
 }
