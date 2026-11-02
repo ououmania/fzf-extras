@@ -210,7 +210,6 @@ e() {
           --no-sort \
           --multi \
           --tiebreak=index \
-          --bind=ctrl-x:toggle-sort \
           --query "$*" \
           --preview="${FZF_PREVIEW_CMD}" \
           --preview-window='right:hidden:wrap' \
