@@ -110,6 +110,7 @@ zdf() {
            --bind=ctrl-x:toggle-sort \
            --header='(view:ctrl-v) (sort:ctrl-x)' \
        )"
+  [[ -n $file ]] || return
   cd "$(dirname "$file")" || return
 }
 
@@ -217,7 +218,8 @@ e() {
           --bind=ctrl-x:toggle-sort \
           --header='(view:ctrl-v) (sort:ctrl-x)' \
       )"
-  ) || return
+  )
+  [[ -n ${files[0]} ]] || return
 
   "${EDITOR:-vim}" "${files[@]}"
 }
@@ -263,6 +265,7 @@ fo() {
   )
   key="$(head -1 <<< "${out[@]}")"
   file="$(head -2 <<< "${out[@]}" | tail -1)" || return
+  [[ -n $file ]] || return
 
   if [[ "$key" == ctrl-o ]]; then
     "${OPENER:-xdg-open}" "$file"
@@ -282,6 +285,7 @@ function v() {
         done \
       | fzf -m -0 -1 -q "$*"
   )"
+  [[ -n $files ]] || return
   "${EDITOR:-vim}" "${files/\~/$HOME}"
 }
 
@@ -312,7 +316,8 @@ fbr() {
   branch="$(
     echo "$branches" \
       | fzf-tmux -d "$((2 + "$num_branches"))" +m
-  )" || return
+  )"
+  [[ -n $branch ]] || return
 
   target="$(
     echo "$branch" \
@@ -355,7 +360,8 @@ fco() {
           -n 2 \
           -1 \
           -q "$*"
-  )" || return
+  )"
+  [[ -n $target ]] || return
 
   git checkout "$(echo "$target" | awk '{print $2}')"
 }
@@ -372,7 +378,8 @@ fcoc() {
   commit="$(
     echo "$commits" \
       | fzf --tac +s +m -e
-  )" || return
+  )"
+  [[ -n $commit ]] || return
 
   git checkout "$(echo "$commit" | sed "s/ .*//")"
 }
@@ -400,7 +407,8 @@ fcs() {
           -e \
           --ansi \
           --reverse
-  )" || return
+  )"
+  [[ -n $commit ]] || return
 
   echo -n "$(echo "$commit" | sed "s/ .*//")"
 }
@@ -447,7 +455,7 @@ fstash() {
           --query="$q" \
           --print-query \
           --expect=ctrl-d,ctrl-b
-  )"; do
+  )"; [[ -n $out ]]; do
     mapfile -t out <<< "$out"
     q="${out[0]}"
     k="${out[1]}"
@@ -589,7 +597,8 @@ fkill() {
       | sed 1d \
       | fzf -m \
       | awk '{print $2}'
-  )" || return
+  )"
+  [[ -n $pid ]] || return
 
   kill -"${1:-9}" "$pid"
 }
@@ -601,23 +610,32 @@ fkill() {
 
 # ftags - search ctags
 ftags() {
-  local line
+  local line tagname file
 
   [[ -e 'tags' ]] || return
 
+  # The producer (awk) gets SIGPIPE when a selection is made before the whole
+  # tags file is consumed; with pipefail that makes the command substitution
+  # non-zero despite a valid selection. Check the selected line, not the
+  # pipeline status.
   line="$(
     awk 'BEGIN { FS="\t" } !/^!/ {print toupper($4)"\t"$1"\t"$2"\t"$3}' tags \
-      | cut -c1-"$COLUMNS" \
       | fzf --nth=2 --tiebreak=begin
-  )" || return
+  )"
+  [[ -n $line ]] || return
 
-  # `"` starts a comment in Ex commands, so the tag name must not be quoted
-  local tagname
-  tagname="$(cut -f2 <<< "$line" | sed -e 's/[\\|"%# ]/\\&/g')"
+  tagname="$(cut -f2 <<< "$line")"
+  file="$(cut -f3 <<< "$line")"
+  # A bare ":tag" uses the tag stack instead of the tags file and fails with
+  # E73 on a fresh vim; skip selections whose tag/file columns are missing.
+  [[ -n $tagname && -n $file ]] || return
 
-  "${EDITOR:-vim}" "$(cut -f3 <<< "$line")" \
+  # Pass the name via an environment variable: in an Ex command line "|" is a
+  # command separator, '"' starts a comment and backslash escapes are not
+  # consumed for tag names, so shell-quoting the name is unreliable.
+  FTAGS_TAG="$tagname" "${EDITOR:-vim}" "$file" \
     -c 'set nocst' \
-    -c "silent tag $tagname"
+    -c 'execute "silent! tag" escape($FTAGS_TAG, "|")'
 }
 
 
@@ -637,7 +655,8 @@ fs() {
           --query="$1" \
           --select-1 \
           --exit-0
-  )" || return
+  )"
+  [[ -n $session ]] || return
 
   tmux switch-client -t "$session"
 }
@@ -663,7 +682,8 @@ ftpane() {
     echo "$panes" \
       | grep -v "$current_pane" \
       | fzf +m --reverse
-  )" || return
+  )"
+  [[ -n $target ]] || return
 
   target_window="$(
     echo "$target" \
